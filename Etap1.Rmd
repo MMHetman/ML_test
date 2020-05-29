@@ -1,0 +1,67 @@
+---
+title: "Podstawy maszynowego uczenia na przykładzie klasyfikacji tekstu"
+subtitle: "Sztuczna Inteligencja i Inżyniera Wiedzy. Ćwiczenie 4"
+author: "Michał Hetmańczuk"
+date: "27 05 2020"
+output: pdf_document
+---
+Sprawozdanie powstało jak dokument typu R Markdown.
+```{r setup, include=FALSE}
+library(utils)
+library(readtext)
+library(stringr)
+library(tm)
+library(SnowballC)
+library(wordcloud)
+```
+# Etap 1
+## Data processing
+W pierwszej kolejności rozpakowano piliki zip.
+```{r include=FALSE}
+unzip(zipfile = ".\\wiki_train_34_categories_data.zip", exdir = ".\\extdata\\train")
+unzip(zipfile = ".\\wiki_test_34_categories_data.zip", exdir = ".\\extdata\\train")
+```
+Następnie umieszczono je w strukturze danych typu Data Frame. Z nazwy pliku wyekstrahowano kategorię dokumentu. Referencja na tak utworzoną strukturę. została nazwana 'texts_df'.
+```{r include=FALSE}
+texts_df = data.frame(category = factor(), text = character())
+files <- list.files(path=".\\extdata\\train", pattern="*.txt", full.names=TRUE, recursive=FALSE)
+for(x in files) {
+    if (str_detect(x, 'metadata') | str_detect(x, 'license')) {
+      next()
+    }
+    t <- readtext(file = x, encoding = 'utf-8')
+    obs <- data.frame((strsplit(t[,1],'_')[[1]][1]), t[,2], stringsAsFactors = FALSE)
+    names(obs) <- c('category', 'text')
+    texts_df <- rbind(texts_df, obs)
+}
+texts_df$category <- factor(texts_df$category)
+```
+Opis struktury:
+```{r}
+str(texts_df, vec.len = 0)
+levels(texts_df$category)
+```
+Dane zostały wyczyszczone poprzez usunięcie: wielkich liter, liczb, znaków interpunkcyjnych, zbędnych białych znaków oraz wyrazów ze stop-listy (plik stopwords.txt z polską stop-listą został zaczerpnięty z https://github.com/bieli/stopwords/blob/master/polish.stopwords.txt). Aby wykorzystać w tym celu funkcję tm_map, zawartość dokumentów umieszczono w przeznaczonej do tego strukturze - VCorpus (taki typ danych jest obsługiwany przez tm_map).
+```{r warning=FALSE}
+text_labels <- texts_df$category
+text_corpus <- VCorpus(VectorSource(texts_df$text))
+text_corpus_clean <- text_corpus %>%
+  tm_map(content_transformer(tolower)) %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(stripWhitespace)
+stopwords.pl <- readLines(".\\stopwords.txt", encoding = 'UTF-8')
+text_corpus_clean <- tm_map(text_corpus_clean, removeWords, stopwords.pl)
+```
+Wykorzystując tak wyczyszczone korpusy dokumentów utworzono macierz pojęć, zawierającą częstotliwości występowania danego pojęcia w danym dokumencie. 
+```{r}
+text_dtm <- DocumentTermMatrix(text_corpus_clean)
+text_dtm
+```
+Przykładowe wizualizacje przygotowanych danych.
+```{r echo=FALSE, warning=FALSE, fig.hold='hold', out.width="50%"}
+wordcloud(text_corpus_clean[which(text_labels == 'Albania')], min.freq = 50, random.order = FALSE)
+wordcloud(text_corpus_clean[which(text_labels == 'Choroby')], min.freq = 50, random.order = FALSE)
+wordcloud(text_corpus_clean[which(text_labels == 'Astronautyka')], min.freq = 50, random.order = FALSE)
+
+```
