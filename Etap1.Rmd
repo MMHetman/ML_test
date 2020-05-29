@@ -21,7 +21,7 @@ W pierwszej kolejności rozpakowano piliki zip.
 unzip(zipfile = ".\\wiki_train_34_categories_data.zip", exdir = ".\\extdata\\train")
 unzip(zipfile = ".\\wiki_test_34_categories_data.zip", exdir = ".\\extdata\\train")
 ```
-Następnie umieszczono je w strukturze danych typu Data Frame. Z nazwy pliku wyekstrahowano kategorię dokumentu. Referencja na tak utworzoną strukturę. została nazwana 'texts_df'.
+Następnie umieszczono zawartość plików w strukturze danych typu Data Frame. Z nazwy pliku wyekstrahowano kategorię dokumentu. Referencja na tak utworzoną strukturę. została nazwana 'texts_df'.
 ```{r include=FALSE}
 texts_df = data.frame(category = factor(), text = character())
 files <- list.files(path=".\\extdata\\train", pattern="*.txt", full.names=TRUE, recursive=FALSE)
@@ -41,7 +41,7 @@ Opis struktury:
 str(texts_df, vec.len = 0)
 levels(texts_df$category)
 ```
-Dane zostały wyczyszczone poprzez usunięcie: wielkich liter, liczb, znaków interpunkcyjnych, zbędnych białych znaków oraz wyrazów ze stop-listy (plik stopwords.txt z polską stop-listą został zaczerpnięty z https://github.com/bieli/stopwords/blob/master/polish.stopwords.txt). Aby wykorzystać w tym celu funkcję tm_map, zawartość dokumentów umieszczono w przeznaczonej do tego strukturze - VCorpus (taki typ danych jest obsługiwany przez tm_map).
+Aby ujednolcić tekst oraz wstępnie usunąć potencjalnie zbędne cechy, dane zostały wyczyszczone poprzez usunięcie: wielkich liter, liczb, znaków interpunkcyjnych, zbędnych białych znaków oraz wyrazów ze stop-listy (plik stopwords.txt z polską stop-listą został zaczerpnięty z https://github.com/bieli/stopwords/blob/master/polish.stopwords.txt). Aby wykorzystać w tym celu funkcję tm_map, zawartość dokumentów umieszczono w przeznaczonej do tego strukturze - VCorpus (taki typ danych jest obsługiwany przez tm_map).
 ```{r warning=FALSE}
 text_labels <- texts_df$category
 text_corpus <- VCorpus(VectorSource(texts_df$text))
@@ -58,10 +58,19 @@ Wykorzystując tak wyczyszczone korpusy dokumentów utworzono macierz pojęć, z
 text_dtm <- DocumentTermMatrix(text_corpus_clean)
 text_dtm
 ```
-Przykładowe wizualizacje przygotowanych danych.
-```{r echo=FALSE, warning=FALSE, fig.hold='hold', out.width="50%"}
+Przykładowe wizualizacje przygotowanych danych. 
+Kategorie: "Albania", "Choroby", "Astronautyka" 
+```{r echo=FALSE, warning=FALSE, out.width="33%"}
 wordcloud(text_corpus_clean[which(text_labels == 'Albania')], min.freq = 50, random.order = FALSE)
+
 wordcloud(text_corpus_clean[which(text_labels == 'Choroby')], min.freq = 50, random.order = FALSE)
+
 wordcloud(text_corpus_clean[which(text_labels == 'Astronautyka')], min.freq = 50, random.order = FALSE)
 
-```
+``` 
+
+
+## Propozycja metody selekcji cech i implementacji modeli
+Ze względu na fakt, iż mamy do czynienia z szukaniem zależności między dwoma kategorycznymi zmiennym, selekcja cech zostanie przeprowadzona z wykorzystnaiem testów $\ X^2$.
+Implementacja klaysfikatora Naiwnego Bayesa zostanie zaczerpnięta z biblioteki "fastNaiveBayes". Biblioteka tak obsłguje wszystkie rodzaje klasyfikatora (Bernoulli, Gaussiam, Mulitnomial), co może być bardzo przydatne z perspektywy przeprowadzania badań. Wykorzystana zostanie również implementacja drzewa decyzyjnego z pakietu "tree".
+
